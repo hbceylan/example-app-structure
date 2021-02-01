@@ -1,0 +1,25 @@
+apiVersion: networking.k8s.io/v1beta1
+kind: Ingress
+metadata:
+  name: {{ .Values.app.name }}
+  annotations:
+    kubernetes.io/ingress.class: {{ .Values.app.ingress.annotations.class }}
+    nginx.ingress.kubernetes.io/rewrite-target: {{ .Values.app.ingress.annotations.rewrite_target }}
+    nginx.ingress.kubernetes.io/ssl-redirect: {{ .Values.app.ingress.annotations.ssl_redirect | quote }}
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      if ($http_x_forwarded_proto != 'https') {
+        return 301 https://$host$request_uri;
+      }
+spec:
+  rules:
+  {{- range .Values.app.ingress.hosts }}
+    - host: {{ .host | quote }}
+      http:
+        paths:
+        {{- range .paths }}
+          - path: {{ .path }}
+            backend:
+              serviceName: {{ .backend.serviceName }}
+              servicePort: {{ .backend.servicePort }}
+        {{- end }}
+  {{- end }}

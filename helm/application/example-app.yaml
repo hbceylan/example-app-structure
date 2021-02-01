@@ -1,0 +1,34 @@
+app:
+  name: example-app
+  replicaCount: ${REPLICA_COUNT}
+  requests:
+    memory: ${MEMORY}
+    cpu: ${CPU}
+  limits:
+    memory: ${MEMORY}
+    cpu: ${CPU}
+  group: backend
+  service:
+    port: 8080
+  container:
+    image: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/company/example-app:${APP_DOMAIN}-${COMMIT_ID}
+    port: 8080
+    env:
+      - key: APP_ENV
+        value: ${APP_ENV}
+    secretEnv:
+      - key: DB_MYSQLDB_PASSWORD
+        value: DB_MYSQLDB_PASSWORD
+        secret: example-app-db-mysql-password
+    livenessProbe:
+      path: /actuator/health/liveness
+    readinessProbe:
+      path: /actuator/health/readiness
+  ingress:
+    hosts:
+      - host: ${APP_URL}
+        paths:
+          - path: /
+            backend:  
+              serviceName: example-app
+              servicePort: 8080

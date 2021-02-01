@@ -1,0 +1,88 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.app.name }}
+  labels:
+    app: {{ .Values.app.name }}
+    group: {{ .Values.app.group }}
+spec:
+  replicas: {{ .Values.app.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ .Values.app.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.app.name }}
+        group: {{ .Values.app.group }}
+    spec:
+      containers:
+        - name: {{ .Values.app.name }}
+          image: {{ .Values.app.container.image }}
+          {{- if .Values.app.container.livenessProbe }}
+          livenessProbe:
+            httpGet:
+              path: {{ .Values.app.container.livenessProbe.path }}
+              port: {{ .Values.app.container.port }}
+              scheme: HTTP
+            initialDelaySeconds: 30
+            timeoutSeconds: 3
+            periodSeconds: 5
+            failureThreshold: 15
+          {{- end }}
+          {{- if .Values.app.container.readinessProbe }}
+          readinessProbe:
+            httpGet:
+              path: {{ .Values.app.container.readinessProbe.path }}
+              port: {{ .Values.app.container.port }}
+              scheme: HTTP
+            initialDelaySeconds: 30
+            timeoutSeconds: 3
+            periodSeconds: 5
+            failureThreshold: 15
+          {{- end }}
+          {{- if .Values.app.container.lifecycle }}
+          lifecycle:
+            preStop:
+              httpGet:
+                path: {{ .Values.app.container.lifecycle.path }}
+                port: {{ .Values.app.container.port }}
+                scheme: HTTP
+                httpHeaders:
+                - name: x-signature
+                  value: {{ .Values.app.container.lifecycle.httpHeaders.value }}
+          {{- end }}
+          imagePullPolicy: {{ .Values.app.container.imagePullPolicy }}
+          {{- if .Values.imagePullSecrets }}
+          imagePullSecrets: {{ toYaml .Values.imagePullSecrets | indent 8 }}
+          {{- end }}
+          resources:
+            requests:
+              memory: {{ .Values.app.requests.memory }}
+              cpu: {{ .Values.app.requests.cpu }}
+            limits:
+              memory: {{ .Values.app.limits.memory }}
+              cpu: {{ .Values.app.limits.cpu }}
+          ports:
+            - containerPort: {{ .Values.app.container.port }}
+          envFrom:
+            {{- range .Values.app.container.config }}
+            - configMapRef:
+                name: {{ .name }}
+            {{- end}}
+            {{- range .Values.app.container.secret }}
+            - secretRef:
+                name: {{ .name }}
+            {{- end}}
+          env:
+            {{- range .Values.app.container.env}}
+            - name: {{ .key}}
+              value: {{ .value | quote }}
+            {{- end}}
+            {{- range .Values.app.container.secretEnv}}
+            - name: {{ .key}}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .secret}}
+                  key: {{ .value | quote }}
+            {{- end}}

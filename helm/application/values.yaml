@@ -1,0 +1,34 @@
+app:
+  name: app
+  group: app
+  replicaCount: ${REPLICA_COUNT}
+  container:
+    image: image
+    imagePullPolicy: Always
+    port: 8080
+    config: []
+    secret: []
+    env:
+    - key: key
+      value: value
+  requests:
+      memory: "512Mi"
+      cpu: "500m"
+  limits:
+      memory: "512Mi"
+      cpu: "500m"
+  service:
+    type: ClusterIP
+    port: 8080
+  ingress:
+    annotations:
+      class: nginx
+      rewrite_target: /
+      ssl_redirect: "true"
+    hosts:
+      - host: host
+        paths:
+          - path: /
+            backend:  
+              serviceName: service
+              servicePort: 8080
